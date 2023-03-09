@@ -1,70 +1,47 @@
 ﻿#include <iostream>
 #include <Windows.h>
 #include <string>
+#include <vector>
+
 #include "rapidjson.h"
 
 int main()
 {
-	const std::string filename = "./setting.ini";
-
-	const std::string section = "JSON";
-	const std::string key = "directory";
-
+	/// ini 파일에서 Json directory 위치 읽어오기
 	char value[256];
-	GetPrivateProfileStringA(section.c_str(), key.c_str(), "error", value, 256, filename.c_str());
+	//						section		key											path
+	GetPrivateProfileStringA("JSON", "directory", "error", value, sizeof(value), "./setting.ini");
+	std::string path = value;
 
-	std::cout << "Value : " << value << std::endl;
-	const int MAX_BUFFER = 255;
-	char buffer[MAX_BUFFER];
-	GetPrivateProfileSectionNamesA(buffer, MAX_BUFFER, "./setting.ini");
+	std::cout << "Value : " << path << std::endl;
+	path += "/*.*";
 
+	/// 읽어온 경로의 directory 정보 불러오기
+	WIN32_FIND_DATAA fileData;
+ 	HANDLE hFind = FindFirstFileA(path.c_str(), &fileData); // 검색을 시작합니다.
 
-	char sectionNames[4096];
-	DWORD bytesRead = GetPrivateProfileSectionNamesA(sectionNames, 4096, "./setting.ini");
-	if (bytesRead == 0)
+	if (hFind != INVALID_HANDLE_VALUE) 
 	{
-		std::cout << "Error: Failed to read section names from INI file." << std::endl;
-		return 1;
+		do {
+			if (fileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) 
+			{
+				std::cout << fileData.cFileName << std::endl; // 이건 디렉토리
+			}
+			else
+			{
+				std::cout << fileData.cFileName << std::endl; // 파일 이름을 출력합니다.
+			}
+		} while (FindNextFileA(hFind, &fileData) != 0); // 다음 파일을 검색합니다.
+
+		FindClose(hFind); // 검색 핸들을 닫습니다.
 	}
-	std::cout << "Section names in INI file: " << std::endl;
-	char* pSectionName = sectionNames;
-	while (*pSectionName)
+	else 
 	{
-		std::cout << pSectionName << std::endl;
-		pSectionName += strlen(pSectionName) + 1;
+		std::cout << "디렉토리 불러오기 실패" << std::endl;
 	}
 
-	//GetPrivateProfileStringA(NULL, NULL, "None Section", buffer, 4096, filename.c_str());
-	/*std::string sectionNames(buffer);
-	size_t currentPos = 0;
-	size_t previousPos = 0;
+	
 
-	while ((currentPos = sectionNames.find('\0', previousPos)) != std::string::npos)
-	{
-		std::string sectionName = sectionNames.substr(previousPos, currentPos - previousPos);
-		previousPos = currentPos + 1;
-
-		const int MAX_BUFFER2 = 1024;
-		char buffer2[MAX_BUFFER2];
-		GetPrivateProfileSectionA(sectionName.c_str(), buffer2, MAX_BUFFER2, "./setting.ini");
-
-		std::string sectionData(buffer2);
-		size_t currentPos2 = 0;
-		size_t previousPos2 = 0;
-
-		while ((currentPos2 = sectionData.find('\0', previousPos2)) != std::string::npos)
-		{
-			std::string data = sectionData.substr(previousPos2, currentPos2 - previousPos2);
-			previousPos2 = currentPos2 + 1;
-
-			size_t equalPos = data.find('=');
-			std::string key = data.substr(0, equalPos);
-			std::string value = data.substr(equalPos + 1);
-
-			std::cout << "Section Name: " << sectionName << std::endl;
-			std::cout << "Key: " << key << " Value: " << value << std::endl;
-		}
-	}*/
 
 	return 0;
 }
